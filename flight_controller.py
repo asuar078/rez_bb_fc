@@ -2,6 +2,7 @@ import logging
 import time
 
 import communication_server.control_server as cs
+import imu_reader as imu
 import message_handler as mh
 import esc_controller as mc
 import altitude
@@ -19,11 +20,10 @@ def main():
     server_transmit_q = queue.Queue(15)
 
     motors = mc.EscController()
-    # motors = None
     server_thread = cs.ControlServerThread(CONTROL_SERVER_PORT_NUM, server_receive_q)
 
-    # handler_thread = mh.MessageHandler(server_receive_q, server_transmit_q, motors)
     altitude_thread = altitude.Altitude(server_receive_q, motors)
+    imu_thread = imu.ImuReader(server_receive_q)
 
     try:
 
@@ -36,16 +36,22 @@ def main():
         logging.info("starting altitude thread")
         altitude_thread.start()
 
-        logging.info("starting server thread")
-        server_thread.start()
+        logging.info("starting imu thread")
+        imu_thread.start()
+
+        # logging.info("starting server thread")
+        # server_thread.start()
 
     except KeyboardInterrupt:
 
-        altitude_thread.stop()
-        altitude_thread.join(1000)
+        # altitude_thread.stop()
+        # altitude_thread.join(1000)
 
-        server_thread.stop_server()
-        server_thread.join(1000)
+        imu_thread.stop()
+        imu_thread.join(1000)
+
+        # server_thread.stop_server()
+        # server_thread.join(1000)
 
 
 if __name__ == '__main__':

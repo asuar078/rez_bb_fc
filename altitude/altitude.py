@@ -25,7 +25,6 @@ class Altitude(threading.Thread):
 
             try:
                 # get received message
-                # ret_q = self.receive_queue.get(False)
                 ret_q = self.receive_queue.get(True, 1000)
                 self.logger.info("received msg")
 
