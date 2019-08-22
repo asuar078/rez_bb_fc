@@ -17,6 +17,8 @@ class EscController:
     UPDATE_PERIOD = 1.0 / 300.0
 
     state = EscState.IDLE
+    ESC_PWM_MIN = 0.0
+    ESC_PWM_MAX = 1.0
 
     def __init__(self):
 
@@ -30,6 +32,8 @@ class EscController:
         # back esc
         self.back_right = servo.ESC(esc_const.EscPwmPins.BACK_RIGHT)
         self.back_left = servo.ESC(esc_const.EscPwmPins.BACK_LEFT)
+
+        self.escs = [self.front_right, self.back_left, self.front_left, self.back_right]
 
         self.logger = logging.getLogger('MotorController')
         self.logger.debug('__init__')
@@ -76,18 +80,29 @@ class EscController:
         else:
             self.logger.info("esc already armed")
 
-    def set_thrust(self, duty):
-        if self.state == EscState.ARMED:
-            mapped_duty = esc_const.map_val(abs(duty))
-            if 0 <= mapped_duty <= 1:
-                self.front_right.set(mapped_duty)
-                self.front_left.set(mapped_duty)
-                self.back_right.set(mapped_duty)
-                self.back_left.set(mapped_duty)
-            else:
-                raise ValueError("duty cycle out of range {}".format(duty))
-        else:
-            self.logger.error("must arm esc before using")
+    def set_thrust(self, widths):
+
+        pulse_widths = [
+            min(max(self.ESC_PWM_MIN, widths[0] - widths[1] - widths[2] - widths[3]), self.ESC_PWM_MAX),
+            min(max(self.ESC_PWM_MIN, widths[0] + widths[1] + widths[2] - widths[3]), self.ESC_PWM_MAX),
+            min(max(self.ESC_PWM_MIN, widths[0] - widths[1] + widths[2] + widths[3]), self.ESC_PWM_MAX),
+            min(max(self.ESC_PWM_MIN, widths[0] + widths[1] - widths[2] + widths[3]), self.ESC_PWM_MAX)]
+
+        for esc, pwm in zip(self.escs, pulse_widths):
+            esc.set(pwm)
+
+    # def set_thrust(self, duty):
+    #     if self.state == EscState.ARMED:
+    #         mapped_duty = esc_const.map_val(abs(duty))
+    #         if 0 <= mapped_duty <= 1:
+    #             self.front_right.set(mapped_duty)
+    #             self.front_left.set(mapped_duty)
+    #             self.back_right.set(mapped_duty)
+    #             self.back_left.set(mapped_duty)
+    #         else:
+    #             raise ValueError("duty cycle out of range {}".format(duty))
+    #     else:
+    #         self.logger.error("must arm esc before using")
 
     def test_ramp(self):
 
